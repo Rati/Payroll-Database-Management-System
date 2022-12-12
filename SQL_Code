@@ -1,0 +1,646 @@
+--BRIEF: This project is about creating, accessing and maintaining a ‘Payroll Database Management System’ for a travel agency named ‘Go-Holiday’. It holds the payroll information for the employees of the firm as well as allows the users to view information related to it like Gross Salary, Deductions, various contributions and net pay.
+--On technology front, this project has utilised various SQL Coding techniques like views, triggers, stored procedures, stored functions to name a few. 
+--Software and Tools Utilized: Mysql Relational Database Management System and Mysql Workbench
+--GOAL: 
+--1.	Create a Payroll database for the month of ‘January’ for the Go-Holiday Travel Agency’s Employees.  
+--2.	Insert data for the Employees categorized under 3 designations i.e. Executive, Senior Executive, and Manager.
+--3.	Querying Payroll Database using Mysql workbench to check the relations between tables, functionality, accuracy and precision of the database.
+--Future scope: Database to be flexible to support any additional functionality in future.
+
+
+-- PROJECT NAME: GO-HOLIDAY EMPLOYEES PAYROLL
+-- STUDENT: RATI SUDHA 
+-- COURSE: DATA & SQL COURSE 
+
+-- creating database 'PMS_Project' for GO-HOLIDAY EMPLOYEES PAYROLL
+-- database consists of 7 tables 1. Employee_details, 2.Job_Department 3. Salary_and_Bonus 
+-- 4. Salary_deduction 5. National_Insurance 6. Leaves 7.Payroll 
+
+create database PMS_Project;
+
+use PMS_Project;
+
+-- 1.creating table Employee with primary key (employee_ID)
+
+CREATE TABLE Employee (
+Employee_ID INT NOT NULL,
+First_Name varchar(50) NOT NULL,
+Last_Name varchar(50) NOT NULL,
+Gender varchar(50) NOT NULL,
+Age INT NOT NULL,
+Employee_Phone_Number INT NOT NULL,
+Employee_Email_Address varchar(50) NOT NULL,
+Employee_Address varchar(200) NOT NULL,
+constraint pk_Employee primary key (Employee_ID));
+
+-- altering columns in table 'Employee'
+
+alter table Employee 
+add Middle_name varchar(50);
+
+alter table Employee 
+drop column Age;
+
+alter table Employee 
+add Dateofbirth date NOT NULL;
+
+-- rename table 'Employee' to 'Employee_details'
+ 
+alter table employee
+rename to employee_details;
+
+-- altering data type for column Employee_Phone_Number
+
+alter table employee_details
+modify column Employee_Phone_Number bigint not null;
+
+-- 2.creating table Job_Depatment with primary key (Job_ID)
+
+CREATE TABLE Job_Department(
+Job_ID INT NOT NULL,
+Job_Department varchar(50) NOT NULL,
+Description varchar(200), 
+Salary_range decimal NOT NULL,
+constraint pk_Job_Department primary key (Job_ID));
+
+-- adding column Employee_ID as foreign key
+
+alter table Job_Department 
+add Employee_ID  int not null;
+
+alter table Job_Department  
+add foreign key (Employee_ID)
+references Employee(Employee_ID);
+
+-- 3.creating table Salary_and_Bonus with primary key (Salary_ID), Foreign key (Job_ID)
+
+CREATE TABLE Salary_and_Bonus (
+Salary_ID INT NOT NULL,
+Job_ID INT NOT NULL,
+City_weighting decimal NOT NULL,
+Basic_salary decimal NOT NULL,
+Over_time decimal NOT NULL, 
+Bonus decimal NOT NULL,
+Gross_Pay decimal NOT NULL,
+constraint PK_Salary_and_Bonus primary key (Salary_ID),
+constraint FK_Salary_and_Bonus Foreign key (Job_ID) References Job_Department(Job_ID));
+
+-- adding  foreign key (Employee_ID)
+
+alter table Salary_and_Bonus 
+add Employee_ID  int not null;
+
+alter table Salary_and_Bonus  
+add foreign key (Employee_ID)
+references Employee(Employee_ID);
+
+-- setting defalt values for column Over_time and Bonus
+
+alter table Salary_and_Bonus 
+alter Over_time set default '0';
+
+alter table Salary_and_Bonus 
+alter Bonus set default '0';
+
+-- droping and recreating and calculating column Gross_pay
+
+alter table Salary_and_Bonus
+drop column Gross_Pay;
+
+alter table Salary_and_Bonus
+add Gross_Pay decimal as (Salary_and_Bonus.City_weighting + 
+Salary_and_Bonus.Basic_salary + Salary_and_Bonus.Over_time + Salary_and_Bonus.Bonus);
+
+-- altering datatype range for the column Gross_pay and Basic_salary
+
+alter table Salary_and_Bonus
+modify column Gross_Pay decimal (10,2),
+modify column Basic_salary decimal (10,2);
+
+-- 4. creating table Salary_Deduction with primary key (Deduction_ID), Foreign key (Salary_ID)
+
+CREATE TABLE Salary_Deduction(
+Deduction_ID INT NOT NULL,
+Salary_ID INT NOT NULL,
+Tax decimal NOT NULL,
+Pension decimal NOT NULL,
+Student_loan decimal NOT NULL, 
+NI_payment decimal NOT NULL,
+Deductions decimal NOT NULL,
+constraint PK_Salary_Deduction primary key (Deduction_ID),
+constraint fK_Salary_Deduction Foreign key (Salary_ID) References Salary_and_Bonus(Salary_ID));
+
+-- adding column as foreign key (Employee_ID)
+
+alter table Salary_Deduction 
+add Employee_ID  int not null;
+
+alter table Salary_Deduction  
+add foreign key (Employee_ID)
+references Employee(Employee_ID);
+
+-- setting default value for student loan
+
+alter table Salary_Deduction 
+alter Student_loan set default '0';
+
+-- adding column as foreign key (NI_Number)
+
+alter table Salary_Deduction 
+add NI_Number varchar(50) NOT NULL;
+
+alter table Salary_Deduction  
+add foreign key (NI_Number)
+references National_Insurance(NI_Number);
+
+-- adding column Basic_Salary
+
+alter table Salary_Deduction 
+add Basic_Salary decimal(10,2);
+
+-- droping recreating and calculating column Tax
+
+alter table Salary_Deduction
+drop column Tax;
+
+alter table Salary_Deduction
+add Tax decimal(10,2) as ((Basic_salary - 1062.50)* 20/100); 
+
+-- droping recreating and calculating column Pension
+
+alter table Salary_Deduction
+drop column Pension;
+
+alter table Salary_Deduction
+add column Pension decimal (10,2) as (Basic_salary * 5/100);
+
+-- droping recreating and calculating column NI_Payment
+
+alter table Salary_Deduction
+drop column NI_Payment;
+
+alter table Salary_Deduction
+add column NI_Payment decimal (10,2) as (Basic_salary * 12/100);
+
+-- droping recreating and calculating column Deductions
+
+alter table Salary_Deduction
+drop column Deductions;
+
+alter table Salary_Deduction
+add column Deductions decimal (10,2) as (Tax + Pension + Student_loan + NI_payment);
+
+-- 5. creating table National_Insurance with primary key (NI_Number) 
+ 
+CREATE TABLE National_Insurance(
+NI_Number varchar(50) NOT NULL,
+NI_Code varchar(50) NOT NULL,
+NI_Payment decimal NOT NULL,
+constraint pk_National_Insurance primary key (NI_Number));
+
+-- adding column as Foreign key (Employee_ID)
+
+alter table National_Insurance 
+add Employee_ID  int not null;
+
+alter table National_Insurance  
+add foreign key (Employee_ID)
+references Employee(Employee_ID);
+
+-- adding column as Foreign key (Salary_ID)
+
+alter table National_Insurance
+add Salary_ID INT NOT NULL;
+
+alter table National_Insurance  
+add foreign key (Salary_ID)
+references Salary_and_bonus(Salary_ID);
+
+-- modifying datatype range for column NI_Payment
+
+alter table National_Insurance
+modify column NI_Payment decimal (10,2);
+
+-- Updating and calculating NI_Payment
+
+update National_Insurance as National_Insurance
+inner join Salary_and_bonus as Salary_and_bonus on National_Insurance.Salary_ID = Salary_and_bonus.Salary_ID
+set National_Insurance.NI_Payment = (Salary_and_bonus.Basic_salary * 12/100);
+
+-- 6. creating table Leaves with primary key (Leave_ID), Foreign key (Salary_ID)
+
+CREATE TABLE Leaves(
+Leave_ID INT NOT NULL,
+Salary_ID INT NOT NULL,
+Leave_Date DATE NOT NULL,
+constraint pk_Leaves primary key (Leave_ID),
+constraint fk_Leaves Foreign key (Salary_ID) References Salary_and_Bonus(Salary_ID));
+
+-- adding column foreign key (Employee_ID)
+
+alter table Leaves 
+add Employee_ID  int not null;
+
+alter table Leaves  
+add foreign key (Employee_ID)
+references Employee(Employee_ID);
+
+-- adding column Leave_status
+
+alter table Leaves
+add Leave_status varchar(50);
+
+-- 7. creating table Payroll with primary key (Payroll_ID), Foreign key (Employee_ID),
+-- (Job_ID), (Salary_ID), (Deduction_ID), (NI_Number), (Leave_ID)
+
+CREATE TABLE Payroll(
+Payroll_ID INT NOT NULL,
+Employee_ID INT NOT NULL,
+Job_ID INT NOT NULL,
+Salary_ID INT NOT NULL,
+Deduction_ID INT NOT NULL,
+NI_Number varchar(50) NOT NULL,
+Leave_ID INT NOT NULL,
+Issue_Date DATE NOT NULL,
+Net_payment decimal NOT NULL,
+constraint PK_Payroll Primary key (Payroll_ID),
+constraint FK1_Payroll Foreign key 
+(Employee_ID) References Employee(Employee_ID),
+constraint FK2_Payroll Foreign key
+(Job_ID) References Job_Department(Job_ID),
+constraint FK3_Payroll Foreign key
+(Salary_ID) References Salary_and_Bonus(Salary_ID),
+constraint FK4_Payroll Foreign key
+(Deduction_ID) References Salary_Deduction(Deduction_ID),
+constraint FK5_Payroll Foreign key
+(NI_Number) References National_Insurance(NI_Number),
+constraint FK6_Payroll Foreign key
+(Leave_ID) References Leaves(Leave_ID)
+);
+
+-- droping, recreating modifying datatype range for column Net_Payment
+
+alter table Payroll
+drop column Net_payment;
+
+alter table Payroll
+add column Net_payment decimal (10,2);
+
+-- calculating and updating Net_payment
+
+update Payroll as Payroll
+inner join Salary_and_bonus as Salary_and_bonus on Payroll.Salary_ID = Salary_and_bonus.Salary_ID
+inner join Salary_deduction as Salary_deduction on Payroll.Salary_ID = Salary_deduction.Salary_ID
+set Payroll.Net_payment = (Salary_and_bonus.Gross_Pay - Salary_deduction.Deductions);
+
+
+
+-- creating insertion stored procedure for
+
+-- 1. creating stored procedure for the Table 'Employee_Details' 
+
+-- Change Delimiter
+DELIMITER //  
+-- Create Stored Procedure
+Create procedure Insertemployeedetails(
+IN Employee_ID INT,
+IN First_Name varchar(50),
+IN Last_Name varchar(50),
+IN Gender varchar(50),
+IN Employee_Phone_Number bigint,
+IN Employee_Email_Address varchar(50),
+IN Employee_Address varchar(200),
+IN Middle_name varchar(50),
+IN Dateofbirth date)
+begin
+     insert into employee_details(Employee_ID, First_Name, Last_Name,
+     Gender, Employee_Phone_Number, Employee_Email_Address, Employee_Address,
+     Middle_name, Dateofbirth)
+     values(Employee_ID, First_Name, Last_Name, Gender, Employee_Phone_Number, 
+     Employee_Email_Address, Employee_Address, Middle_name, Dateofbirth);
+end//                                                                        
+-- Change Delimiter again
+DELIMITER ;
+
+-- 2. creating stored procedure for the Table 'Job_Department' 
+
+-- Change Delimiter
+DELIMITER //  
+-- Create Stored Procedure
+Create procedure Insertjobdepartment(
+IN Job_ID INT,
+IN Job_Department varchar(50),
+IN Description varchar(200), 
+IN Salary_range decimal,
+IN Employee_ID INT)
+begin
+	 insert into job_department(Job_ID , Job_Department, Description ,Salary_range, Employee_ID)
+     values(Job_ID , Job_Department ,Description ,Salary_range, Employee_ID); 
+end//                                                                        
+-- Change Delimiter again
+DELIMITER ;
+
+-- 3. creating stored procedure for the Table 'Salary_and_Bonus' 
+
+-- Change Delimiter
+DELIMITER //  
+-- Create Stored Procedure
+Create procedure InsertintoSalaryandBonus(
+IN Salary_ID INT,
+IN Job_ID INT, 
+IN City_weighting decimal,
+IN Basic_salary decimal,
+IN Employee_ID INT)
+begin
+	 insert into salary_and_bonus(Salary_ID, Job_ID, City_weighting, Basic_salary, Employee_ID)
+     values(Salary_ID, Job_ID, City_weighting, Basic_salary, Employee_ID); 
+end//                                                                        
+-- Change Delimiter again
+DELIMITER ;
+
+-- 4. creating stored procedure for the Table 'Leaves' 
+
+-- Change Delimiter
+DELIMITER //  
+-- Create Stored Procedure
+Create procedure Insertleaves(
+IN leave_ID INT,
+IN Salary_ID INT,
+IN Leave_Date DATE, 
+IN Employee_ID INT,
+IN Leave_status varchar(50))
+begin
+	 insert into Leaves(Leave_ID, Salary_ID, Leave_Date, Employee_ID, Leave_status)
+     values(Leave_ID, Salary_ID, Leave_Date, Employee_ID, Leave_status); 
+end//                                                                        
+-- Change Delimiter again
+DELIMITER ;
+
+-- 5. creating stored procedure for the Table 'National_Insurance' 
+
+-- Change Delimiter
+DELIMITER //  
+-- Create Stored Procedure
+Create procedure InsertNIdetails(
+IN NI_Number varchar(50),
+IN NI_Code varchar(50),
+IN Employee_ID int,
+IN Salary_ID int)
+begin 
+insert into National_Insurance(NI_Number, NI_Code, Employee_ID, Salary_ID)
+values(NI_Number, NI_Code, Employee_ID, Salary_ID);
+end//                                                                     
+-- Change Delimiter again
+
+-- 6. creating stored procedure for the Table Salary_Deduction' 
+
+-- Change Delimiter
+DELIMITER //  
+-- Create Stored Procedure
+Create procedure Insertsalaryanddeduction(
+IN Deduction_ID int,
+IN Salary_ID int,
+IN Employee_ID int,
+IN NI_Number varchar(50),
+IN Basic_Salary decimal(10,2))
+begin 
+insert into Salary_deduction (Deduction_ID, Salary_ID, Employee_ID, NI_number,Basic_Salary)
+values(Deduction_ID, Salary_ID, Employee_ID, NI_number,Basic_Salary);
+end//                                                                     
+-- Change Delimiter again
+
+-- 7. creating stored procedure for the Table 'Payroll'
+
+-- Change Delimiter
+DELIMITER //  
+-- Create Stored Procedure
+Create procedure Insertvaluepayroll(
+IN Payroll_ID INT,
+IN Employee_ID INT,
+IN Job_ID INT,
+IN Salary_ID INT,
+IN Deduction_ID INT,
+IN NI_Number varchar(50),
+IN Leave_ID INT,
+IN Issue_Date DATE)
+begin 
+insert into Payroll(Payroll_ID, Employee_ID, Job_ID, Salary_ID, Deduction_ID, NI_Number, Leave_ID, Issue_Date)
+values (Payroll_ID, Employee_ID, Job_ID, Salary_ID, Deduction_ID, NI_Number, Leave_ID, Issue_Date);
+end//                                                                     
+-- Change Delimiter again
+
+-- Inserting values to the tables via calling insertion stored procedure
+
+-- 1. Inserting values to the table 'Employee_Details'
+
+call Insertemployeedetails(101,'Paul','Smith','Male',8773347644,'paulsmith@gotravel.com','25 lane street Bristol,se79uh', 'M', 09/11/1985);
+
+-- updating time format
+
+update employee_details 
+set dateofbirth = '1985-11-09'
+where employee_ID = 101;
+
+call Insertemployeedetails(102,'Olivia','Young','Female', 8778397600, 'oliviamyoung@gotravel.com','42 bay street Reading, re79uj', 'Marie', '1991-08-13');
+call Insertemployeedetails(103,	'Tom', 'Baker',	'Male', 8778947633, 'tombaker@gotravel.com', '76 high street reigate, ri76hg', 'Edward', '1998-05-10');
+call Insertemployeedetails(104, 'Bill', 'Norman', 'Male', 8778547637, 'billnorman@gotravel.com','59 wale street Goldstone, go79up', 'David', '1994-09-25');		
+call Insertemployeedetails(105,	'Sarah', 'Parker',	'Female', 8778347699, 'sarahjparker@gotravel.com',	'25 top street Orpington, or72tn',	'Jessica', '1997-04-15');
+call Insertemployeedetails(106,	'Nancy', 'Hill', 'Female', 8778342691, 'nancyehill@gotravel.com', '37 cross street Redhill, re34ty', 'E', '1995-08-17');
+call Insertemployeedetails(107,	'Mann', 'Trent', 'Male', 8778352091, 'mannstrent@gotravel.com', '24 bell street Bromley, br76gr', 'S', '1990-11-30');
+call Insertemployeedetails(108, 'Kelly', 'Rose', 'Female', 87781847633, 'kellyarose@gotravel.com', '12 high street Tonbridge, to67yt',	'Ann', '1993-09-17');
+call Insertemployeedetails(109, 'Emily', 'Blunt', 'Female',	87183476300, 'emilyrblunt@gotravel.com', '15 down street Sevenoaks, se23gx', 'R', '1990-09-15');
+call Insertemployeedetails(110,	'Jon', 'Kern', 'Male',	87183476110, 'Jondkern@gotravel.com', '10 hill street Bromley, br10nk', 'D', '1996-03-16');
+
+-- 2. Inserting values to the table 'Job_Department'
+
+call Insertjobdepartment(1011,'IT','Manager', 46000, 101);
+call Insertjobdepartment(1012,'Marketing','Senior Executive',40000, 102);
+call Insertjobdepartment(1013,'Marketing', 'Executive', 33000, 103);
+call Insertjobdepartment(1014,'Marketing', 'Executive', 33000, 104);
+call Insertjobdepartment(1015,'Marketing', 'Executive', 33000, 105);
+call Insertjobdepartment(1016,'marketing', 'Executive', 34000, 106);
+call Insertjobdepartment(1017,'finance', 'Senior Executive', 40000, 107);
+call Insertjobdepartment(1018, 'it', 'Executive', 34500, 108);
+call Insertjobdepartment(1019, 'it', 'Senior Executive', 40000, 109);
+call Insertjobdepartment(1020, 'it', 'Executive', 33500, 110);
+
+-- Updating job_departments
+
+update Job_department 
+set job_Department = 'Finance'
+where Job_ID in (1014, 1015);
+
+-- 3. Inserting values to the table 'Salary_and_Bonus'
+
+call InsertintoSalaryandBonus(301, 1011, 580, 3833, 101);
+call InsertintoSalaryandBonus(302, 1012, 490, 3333, 102);
+call InsertintoSalaryandBonus(303, 1013, 345, 2750, 103);
+call InsertintoSalaryandBonus(304, 1014, 345, 2750, 104);
+call InsertintoSalaryandBonus(305, 1015, 345, 2750, 105);
+call InsertintoSalaryandBonus(306, 1016, 345, 2833, 106);
+call InsertintoSalaryandBonus(307, 1017, 490, 3333, 107);
+call InsertintoSalaryandBonus(308, 1018, 345, 2875, 108);
+call InsertintoSalaryandBonus(309, 1019, 490, 3333, 109);
+call InsertintoSalaryandBonus(310, 1020, 345, 2792, 110);
+
+-- 4. Inserting values to the table 'Leaves'
+
+call Insertleaves(201, 301, '2021-11-09', 101, 'Approved');
+call Insertleaves(202, 302, '2021-12-13', 102, 'Approved');
+call Insertleaves(203, 303, '2021-10-10', 103, 'Approved');
+call Insertleaves(204, 304, '2021-11-25', 104, 'Approved');
+call Insertleaves(205, 305, '2021-10-15', 105, 'Approved');
+call Insertleaves(206, 306, '2021-10-17', 106, 'Approved');
+call Insertleaves(207, 307, '2021-09-18', 107, 'Approved');
+call Insertleaves(208, 308, '2021-11-14', 108, 'Approved');
+call Insertleaves(209, 309, '2021-10-16', 109, 'Approved');
+call Insertleaves(210, 310, '2021-09-15', 110, 'Approved');
+
+-- 5. Inserting values to the table 'National_Insurance'
+
+call InsertNIdetails('ni456', 'nicode546', 101, 301);
+call InsertNIdetails('ni788', 'nicode768', 102, 302);
+call InsertNIdetails('ni909', 'nicode411', 103, 303);
+call InsertNIdetails('ni324', 'nicode832', 104, 304);
+call InsertNIdetails('ni563', 'nicode708', 105, 305);
+call InsertNIdetails('ni768', 'nicode908', 106, 306);
+call InsertNIdetails('ni673', 'nicode509', 107, 307);
+call InsertNIdetails('ni809', 'nicode456', 108, 308);
+call InsertNIdetails('ni811', 'nicode788', 109, 309);
+call InsertNIdetails('ni567', 'nicode657', 110, 310);
+
+-- 6. Inserting values to the table 'Salary_Deduction'
+
+call Insertsalaryanddeduction(401, 301, 101, 'ni456', 3833.00);
+call Insertsalaryanddeduction(402, 302, 102, 'ni788', 3333.00);
+call Insertsalaryanddeduction(403, 303, 103, 'ni909', 2750.00);
+call Insertsalaryanddeduction(404, 304, 104, 'ni324', 2750.00);
+call Insertsalaryanddeduction(405, 305, 105, 'ni563', 2750.00);
+call Insertsalaryanddeduction(406, 306, 106, 'ni768', 2833.00);
+call Insertsalaryanddeduction(407, 307, 107, 'ni673', 3333.00);
+call Insertsalaryanddeduction(408, 308, 108, 'ni809', 2875.00);
+call Insertsalaryanddeduction(409, 309, 109, 'ni811', 3333.00);
+call Insertsalaryanddeduction(410, 310, 110, 'ni567', 2792.00);
+
+-- 7. Inserting values to the table 'Payroll'
+
+call Insertvaluepayroll(501, 101, 1011, 301, 401, 'ni456', 201, '2022-01-01');
+call Insertvaluepayroll(502, 102, 1012, 302, 402, 'ni788', 202, '2022-01-01');
+call Insertvaluepayroll(503, 103, 1013, 303, 403, 'ni909', 203, '2022-01-01');
+call Insertvaluepayroll(504, 104, 1014, 304, 404, 'ni324', 204, '2022-01-01');
+call Insertvaluepayroll(505, 105, 1015, 305, 405, 'ni563', 205, '2022-01-01');
+call Insertvaluepayroll(506, 106, 1016, 306, 406, 'ni768', 206, '2022-01-01');
+call Insertvaluepayroll(507, 107, 1017, 307, 407, 'ni673', 207, '2022-01-01');
+call Insertvaluepayroll(508, 108, 1018, 308, 408, 'ni809', 208, '2022-01-01');
+call Insertvaluepayroll(509, 109, 1019, 309, 409, 'ni811', 209, '2022-01-01');
+call Insertvaluepayroll(510, 110, 1020, 310, 410, 'ni567', 210, '2022-01-01');
+
+
+-- Writing querries to the database PMS_Project
+
+-- Core Requirement 3: Using any type of the joins create a view that combines 
+-- multiple tables in a logical way
+-- Query 1: creating view on the table for female employee to find her employee ID,
+-- name, gender, job deparment and net pay where job_department is Marketing.
+
+-- creating view 
+create view PMS_view1 as
+select First_Name, Middle_Name, Last_Name, Gender, Job_department, Net_Payment
+from Employee_details as Employee_details  
+inner join Job_Department as Job_Department on Employee_details.Employee_ID = Job_Department.Employee_ID 
+inner join Payroll as Payroll on  Employee_details.Employee_ID = Payroll.Employee_ID
+where job_department = 'Marketing' AND Gender = 'Female';
+
+-- fetching View results
+select * from PMS_view1;
+
+-- Core Requirement 4: In your database, create a stored function that can be applied to a query in your DB
+-- Query 2:creating a stored function to find the category of employees on the basis of salary range
+-- also calling the funtion in select query.
+
+-- creating stored function 
+delimiter //
+create function whatisemployeelevel(Salary_range decimal)
+returns VARCHAR(50)
+deterministic
+begin
+	declare employee_level VARCHAR(50);
+    if Salary_range < 35000 then
+		set employee_level = 'junior_level_employee';
+	elseif Salary_range = 40000 then
+		set employee_level = 'Middle_level_employee';
+	elseif Salary_range > 45000 then
+		set employee_level = 'Senior_level_employee';
+	end if;
+    return (employee_level);
+end//
+delimiter ;
+
+-- calling stored function through select query
+
+select First_Name, Middle_Name, Last_Name, Job_Department, 
+Description,Salary_range, whatisemployeelevel(Salary_range)
+from Job_Department as job_department inner join Employee_details
+as Employee_details on Employee_details.Employee_ID = Job_Department.Employee_ID;
+    
+-- Core Requirement 5: Prepare an example query with a subquery to demonstrate how to 
+-- extract data from your DB for analysis
+-- Query 3: find the name, gender, salary range of the second highest paid employee in 
+-- IT department in the company Go-Holiday.
+
+select concat(first_name, ' ', Middle_name, ' ', Last_name) as Name, Gender, job_department, salary_range 
+from Employee_details as Employee_details
+inner join Job_Department as Job_Department on Job_Department.Employee_ID = Employee_details.Employee_ID
+where Job_Department.Employee_ID = (select Job_Department.Employee_ID from job_department 
+where Job_department = 'IT' AND Salary_range = (select Max(Salary_range) from Job_department 
+where Salary_range < (select Max(Salary_range) from Job_department)));
+
+-- Advanced requirement: 1 In your database, create a trigger and demonstrate how it runs
+-- Query 4: create a trigger for the table Job department before insert
+
+-- trigger for the table Job department
+
+DELIMITER //
+CREATE TRIGGER jobdepartment_before_insert
+before INSERT on job_department
+FOR EACH ROW
+BEGIN
+	SET NEW.Job_department = CONCAT(UPPER(SUBSTRING(NEW.Job_department, 1,10)));
+    END //
+    DELIMITER ;
+
+call Insertjobdepartment(1017,'finance', 'Senior Executive', 40000, 107);
+
+-- Advanced requirement: 2 Create a view that uses at least 3 4 base tables prepare and 
+-- demonstrate a query that uses the view to produce a logically arranged result set for analysis
+-- Query 5: Find employees name, gender, job department, salary range, Basic salary
+-- and net payment where salary range >= 40,000.
+
+-- creating view 
+create view PMS_view2 as
+select concat(First_Name, ' ', Middle_Name, ' ', Last_Name) as Name, Gender, Job_department, 
+Description, Salary_Range, Basic_Salary, Net_Payment
+from Employee_details as Employee_details  
+inner join Job_Department as Job_Department on Employee_details.Employee_ID = Job_Department.Employee_ID 
+inner join Payroll as Payroll on  Employee_details.Employee_ID = Payroll.Employee_ID
+inner join Salary_and_Bonus as Salary_and_Bonus on Employee_details.Employee_ID = Salary_and_Bonus.Employee_ID;
+
+select * from pms_view2;
+
+select Name, Gender, Job_department, Description, Salary_Range, 
+Basic_Salary, Net_Payment
+from PMS_View2
+where Salary_range >= 40000
+order by Name, Basic_Salary;
+
+-- Advanced requirement: 3 Prepare an example query with group by and having to demonstrate 
+-- how to extract data from your DB for analysis
+-- Query 6: Find total number of female employees and hightest salary_range in 
+-- different job departments
+
+select Gender, job_department, count(job_department), Max(Salary_range) 
+from (job_department
+inner join Employee_details on Employee_details.Employee_ID = Job_Department.Employee_ID) 
+group by Gender, job_department
+having Gender = 'Female'
+order by count(job_department) desc;
